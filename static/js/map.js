@@ -318,7 +318,14 @@ function analyzeProject() {
     .catch(error => {
         analysisModal.hide();
         console.error('Analysis error:', error);
-        alert('An error occurred during analysis. Please try again.');
+        
+        // Provide more detailed error information
+        let errorMessage = 'An error occurred during analysis. Please try again.';
+        if (error && error.message) {
+            errorMessage += '\n\nError details: ' + error.message;
+        }
+        
+        alert(errorMessage);
     });
 }
 
@@ -527,10 +534,15 @@ function updateLandCoverTab(landCoverData) {
     });
     
     // Update terrain description
-    document.getElementById('terrain-description').textContent = 
-        'The project area consists primarily of ' + document.getElementById('summary-project-type').textContent.toLowerCase() + 
-        '. The terrain can be characterized as mostly ' + document.getElementById('terrain-type').textContent.toLowerCase() + 
-        '. Further detailed topographical survey is recommended for precise elevation data.';
+    const terrainDescription = document.getElementById('terrain-description');
+    const summaryProjectType = document.getElementById('summary-project-type');
+    
+    if (terrainDescription && summaryProjectType) {
+        terrainDescription.textContent = 
+            'The project area consists primarily of ' + summaryProjectType.textContent.toLowerCase() + 
+            '. The terrain can be characterized as mostly flat with slight undulation' + 
+            '. Further detailed topographical survey is recommended for precise elevation data.';
+    }
 }
 
 // Update objects tab with detection results

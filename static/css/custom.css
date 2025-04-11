@@ -1,0 +1,125 @@
+/* Custom styles for GeoSight DPR Assistant */
+
+/* Global Styles */
+body {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+}
+
+.container-fluid {
+    flex: 1;
+}
+
+.footer {
+    margin-top: auto;
+}
+
+/* Map Container */
+#map-container {
+    width: 100%;
+    height: 70vh;
+    border-radius: 0 0 0.25rem 0.25rem;
+}
+
+/* Project Form */
+.card-header {
+    font-weight: 500;
+}
+
+/* Results Section */
+.tab-content {
+    background-color: var(--bs-body-bg);
+    min-height: 300px;
+}
+
+.list-group-item {
+    background-color: var(--bs-body-bg);
+    border-color: var(--bs-border-color);
+}
+
+/* Report Page */
+.report-section {
+    margin-bottom: 2.5rem;
+}
+
+.subsection {
+    margin-bottom: 1.5rem;
+}
+
+/* Analysis Modal */
+.spinner-container {
+    margin: 20px 0;
+}
+
+/* Progress Bar */
+.progress {
+    height: 0.5rem;
+}
+
+/* Responsive Adjustments */
+@media (max-width: 768px) {
+    #map-container {
+        height: 50vh;
+    }
+    
+    .col-md-4, .col-md-8 {
+        width: 100%;
+    }
+}
+
+/* Chart Containers */
+#land-cover-chart {
+    max-height: 250px;
+}
+
+/* Custom hover effects for buttons */
+.btn:hover {
+    opacity: 0.9;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transition: all 0.2s ease;
+}
+
+/* Card hover effects */
+.card {
+    transition: all 0.3s ease;
+}
+
+.card:hover {
+    box-shadow: 0 5px 15px rgba(0, 0, 0, 0.1);
+}
+
+/* Custom badges */
+.badge {
+    font-weight: 500;
+    padding: 0.35em 0.65em;
+}
+
+/* Report page print styles */
+@media print {
+    .card {
+        border: 1px solid #dee2e6 !important;
+    }
+    
+    .btn, nav, .footer, .breadcrumb {
+        display: none !important;
+    }
+    
+    .card-header {
+        background-color: #f8f9fa !important;
+        color: #212529 !important;
+    }
+    
+    body {
+        color: #000 !important;
+        background-color: #fff !important;
+    }
+    
+    .container-fluid {
+        width: 100% !important;
+        max-width: 100% !important;
+        padding: 0 !important;
+        margin: 0 !important;
+    }
+}

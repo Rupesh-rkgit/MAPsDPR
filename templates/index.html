@@ -1,0 +1,240 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key | default('') }}&libraries=drawing,places&callback=initMap" async defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Left Panel - Project Definition -->
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-project-diagram me-2"></i>Project Definition
+            </div>
+            <div class="card-body">
+                <form id="project-form">
+                    <div class="mb-3">
+                        <label for="project-name" class="form-label">Project Name</label>
+                        <input type="text" class="form-control" id="project-name" placeholder="Enter project name" required>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="project-type" class="form-label">Project Type</label>
+                        <select class="form-select" id="project-type" required>
+                            <option value="" selected disabled>Select project type</option>
+                            <option value="Rural Road">Rural Road</option>
+                            <option value="Urban Road">Urban Road</option>
+                            <option value="Pipeline">Pipeline</option>
+                            <option value="Transmission Line">Transmission Line</option>
+                            <option value="Solar Farm">Solar Farm</option>
+                            <option value="Small Building">Small Building</option>
+                            <option value="Warehouse">Warehouse</option>
+                        </select>
+                    </div>
+                    
+                    <div class="mb-3" id="project-parameters">
+                        <!-- Dynamic parameters based on project type will be inserted here -->
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label class="form-label">Project Area Definition</label>
+                        <div class="card bg-dark p-2 mb-2">
+                            <small class="text-light">
+                                <i class="fas fa-info-circle me-1"></i> Use the drawing tools on the map to define your project area.
+                            </small>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="button" class="btn btn-outline-secondary btn-sm" id="clear-drawing">
+                                <i class="fas fa-trash-alt me-1"></i> Clear Drawing
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2">
+                        <button type="button" class="btn btn-success" id="analyze-btn" disabled>
+                            <i class="fas fa-microscope me-1"></i> Analyze Project Area
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header bg-info text-white">
+                <i class="fas fa-info-circle me-2"></i>Instructions
+            </div>
+            <div class="card-body">
+                <ol class="small">
+                    <li>Enter your project details in the form above</li>
+                    <li>Use the drawing tools on the map to define your project area:
+                        <ul>
+                            <li>Polygon tool for area-based projects (buildings, solar farms)</li>
+                            <li>Polyline tool for linear projects (roads, pipelines)</li>
+                        </ul>
+                    </li>
+                    <li>Click "Analyze Project Area" to start the AI analysis</li>
+                    <li>Review the generated report and download as needed</li>
+                </ol>
+                <div class="alert alert-warning small mt-2 mb-0">
+                    <i class="fas fa-exclamation-triangle me-1"></i> This tool provides preliminary analysis only and should be validated with on-ground surveys.
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Right Panel - Map View -->
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-map me-2"></i>Project Area Map
+            </div>
+            <div class="card-body p-0">
+                <div id="map-container" style="height: 70vh;"></div>
+            </div>
+        </div>
+        
+        <!-- Analysis Results Section (Initially Hidden) -->
+        <div id="results-section" class="card mb-4 d-none">
+            <div class="card-header bg-success text-white">
+                <i class="fas fa-chart-pie me-2"></i>Analysis Results
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-between mb-3">
+                    <h5 id="results-project-name">Project Analysis</h5>
+                    <div>
+                        <button class="btn btn-outline-primary" id="generate-report-btn">
+                            <i class="fas fa-file-pdf me-1"></i> Generate Report
+                        </button>
+                    </div>
+                </div>
+                
+                <ul class="nav nav-tabs" id="resultsTabs" role="tablist">
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link active" id="summary-tab" data-bs-toggle="tab" data-bs-target="#summary" type="button">Summary</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="land-cover-tab" data-bs-toggle="tab" data-bs-target="#land-cover" type="button">Land Cover</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="objects-tab" data-bs-toggle="tab" data-bs-target="#objects" type="button">Objects</button>
+                    </li>
+                    <li class="nav-item" role="presentation">
+                        <button class="nav-link" id="risks-tab" data-bs-toggle="tab" data-bs-target="#risks" type="button">Risks</button>
+                    </li>
+                </ul>
+                
+                <div class="tab-content p-3 border border-top-0 rounded-bottom" id="resultsTabContent">
+                    <!-- Summary Tab -->
+                    <div class="tab-pane fade show active" id="summary" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <div class="alert alert-info">
+                                    <strong><i class="fas fa-info-circle me-1"></i> Analysis Date:</strong> <span id="analysis-date"></span>
+                                </div>
+                                <h6>Project Overview</h6>
+                                <ul class="list-group mb-3">
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Project Type:</span> <strong id="summary-project-type"></strong>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Location:</span> <strong id="summary-location"></strong>
+                                    </li>
+                                    <li class="list-group-item d-flex justify-content-between">
+                                        <span>Area/Length:</span> <strong id="summary-area"></strong>
+                                    </li>
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Key Findings</h6>
+                                <ul class="list-group" id="key-findings-list">
+                                    <!-- Will be populated with analysis results -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Land Cover Tab -->
+                    <div class="tab-pane fade" id="land-cover" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Land Cover Distribution</h6>
+                                <canvas id="land-cover-chart" height="200"></canvas>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Details</h6>
+                                <ul class="list-group" id="land-cover-details">
+                                    <!-- Will be populated with land cover details -->
+                                </ul>
+                            </div>
+                        </div>
+                        <div class="mt-3">
+                            <h6>Terrain Information</h6>
+                            <p id="terrain-description"></p>
+                        </div>
+                    </div>
+                    
+                    <!-- Objects Tab -->
+                    <div class="tab-pane fade" id="objects" role="tabpanel">
+                        <div class="row">
+                            <div class="col-md-6">
+                                <h6>Detected Objects</h6>
+                                <ul class="list-group" id="objects-list">
+                                    <!-- Will be populated with object detection results -->
+                                </ul>
+                            </div>
+                            <div class="col-md-6">
+                                <h6>Infrastructure</h6>
+                                <ul class="list-group" id="infrastructure-list">
+                                    <!-- Will be populated with infrastructure details -->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Risks Tab -->
+                    <div class="tab-pane fade" id="risks" role="tabpanel">
+                        <div class="alert alert-warning mb-3">
+                            <i class="fas fa-exclamation-triangle me-1"></i> The following risks have been identified based on imagery analysis. Further on-ground verification is recommended.
+                        </div>
+                        <ul class="list-group" id="risks-list">
+                            <!-- Will be populated with risk assessment results -->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Analysis Progress Modal -->
+<div class="modal fade" id="analysis-modal" data-bs-backdrop="static" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Analyzing Project Area</h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="spinner-container mb-3">
+                    <div class="spinner-border text-primary" role="status"></div>
+                </div>
+                <p id="analysis-status">Loading satellite imagery...</p>
+                <div class="progress">
+                    <div id="analysis-progress" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 10%"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<!-- Chart.js for visualization -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+
+<!-- Custom JavaScript -->
+<script src="{{ url_for('static', filename='js/map.js') }}"></script>
+<script src="{{ url_for('static', filename='js/analysis.js') }}"></script>
+{% endblock %}

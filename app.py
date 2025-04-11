@@ -48,13 +48,8 @@ with app.app_context():
 # Routes
 @app.route('/')
 def index():
-    # Get the API key from environment variables
-    # IMPORTANT: If the map doesn't appear, make sure a valid Google Maps API key is set
-    # The key needs to have the "Maps JavaScript API" and "Drawing Library" enabled
-    # You can set it by updating the GOOGLE_MAPS_API_KEY environment variable
-    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
-    if not google_maps_api_key:
-        logger.warning("No Google Maps API key found in environment variables")
+    # For a real application, you would get this from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/projects')
@@ -71,13 +66,8 @@ def view_project(project_id):
     # Parse the coordinates from the JSON string
     coordinates = json.loads(project.coordinates_json)
     
-    # Get the API key from environment variables
-    # IMPORTANT: If the map doesn't appear, make sure a valid Google Maps API key is set
-    # The key needs to have the "Maps JavaScript API" and "Drawing Library" enabled
-    # You can set it by updating the GOOGLE_MAPS_API_KEY environment variable
-    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
-    if not google_maps_api_key:
-        logger.warning("No Google Maps API key found in environment variables")
+    # For a real application, you would get this from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     
     return render_template('view_project.html', 
                           project=project, 

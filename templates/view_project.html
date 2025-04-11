@@ -75,64 +75,133 @@
 // Initialize project map with saved coordinates
 let projectMap;
 let projectCoordinates = {{ coordinates|tojson }};
+let mapInitialized = false;
+
+// Set a timeout to check if map was initialized properly
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (!mapInitialized) {
+            console.log("Project map initialization timeout - falling back to manual display");
+            handleProjectMapError();
+        }
+    }, 5000); // 5 second timeout
+});
 
 function initProjectMap() {
-    // Create map centered on the first coordinate (or a default if none)
-    let mapCenter;
-    if (projectCoordinates && projectCoordinates.length > 0) {
-        mapCenter = { 
-            lat: projectCoordinates[0][0], 
-            lng: projectCoordinates[0][1] 
-        };
-    } else {
-        mapCenter = { lat: 20.5937, lng: 78.9629 }; // Default center
-    }
-    
-    // Initialize the map
-    projectMap = new google.maps.Map(document.getElementById("project-map"), {
-        center: mapCenter,
-        zoom: 12,
-        mapTypeId: "hybrid",
-        mapTypeControl: true,
-        streetViewControl: true,
-        fullscreenControl: true
-    });
-    
-    // Draw the project shape based on coordinates
-    if (projectCoordinates && projectCoordinates.length > 0) {
-        const isLinear = "{{ project.project_type }}" === "Rural Road" || 
-                        "{{ project.project_type }}" === "Urban Road" || 
-                        "{{ project.project_type }}" === "Pipeline" || 
-                        "{{ project.project_type }}" === "Transmission Line";
-        
-        if (isLinear) {
-            // Create polyline for linear projects
-            const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-            const polyline = new google.maps.Polyline({
-                path: path,
-                strokeColor: "#0000FF",
-                strokeWeight: 3,
-                editable: false,
-                map: projectMap
-            });
-        } else {
-            // Create polygon for area-based projects
-            const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
-            const polygon = new google.maps.Polygon({
-                paths: path,
-                strokeColor: "#00FF00",
-                strokeWeight: 2,
-                fillColor: "#00FF00",
-                fillOpacity: 0.3,
-                editable: false,
-                map: projectMap
-            });
-            
-            // Fit bounds to the polygon
-            const bounds = new google.maps.LatLngBounds();
-            path.forEach(point => bounds.extend(point));
-            projectMap.fitBounds(bounds);
+    try {
+        // Hide the fallback content if map loads successfully
+        const mapFallback = document.getElementById("map-fallback");
+        if (mapFallback) {
+            mapFallback.style.display = "none";
         }
+        
+        // Create map centered on the first coordinate (or a default if none)
+        let mapCenter;
+        if (projectCoordinates && projectCoordinates.length > 0) {
+            mapCenter = { 
+                lat: projectCoordinates[0][0], 
+                lng: projectCoordinates[0][1] 
+            };
+        } else {
+            mapCenter = { lat: 20.5937, lng: 78.9629 }; // Default center
+        }
+        
+        // Initialize the map
+        projectMap = new google.maps.Map(document.getElementById("project-map"), {
+            center: mapCenter,
+            zoom: 12,
+            mapTypeId: "hybrid",
+            mapTypeControl: true,
+            streetViewControl: true,
+            fullscreenControl: true
+        });
+        
+        // Draw the project shape based on coordinates
+        if (projectCoordinates && projectCoordinates.length > 0) {
+            const isLinear = "{{ project.project_type }}" === "Rural Road" || 
+                            "{{ project.project_type }}" === "Urban Road" || 
+                            "{{ project.project_type }}" === "Pipeline" || 
+                            "{{ project.project_type }}" === "Transmission Line";
+            
+            if (isLinear) {
+                // Create polyline for linear projects
+                const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+                const polyline = new google.maps.Polyline({
+                    path: path,
+                    strokeColor: "#0000FF",
+                    strokeWeight: 3,
+                    editable: false,
+                    map: projectMap
+                });
+            } else {
+                // Create polygon for area-based projects
+                const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+                const polygon = new google.maps.Polygon({
+                    paths: path,
+                    strokeColor: "#00FF00",
+                    strokeWeight: 2,
+                    fillColor: "#00FF00",
+                    fillOpacity: 0.3,
+                    editable: false,
+                    map: projectMap
+                });
+                
+                // Fit bounds to the polygon
+                const bounds = new google.maps.LatLngBounds();
+                path.forEach(point => bounds.extend(point));
+                projectMap.fitBounds(bounds);
+            }
+        }
+        
+        console.log("Project map initialized successfully");
+        mapInitialized = true;
+    } catch (error) {
+        console.error("Error initializing project map:", error);
+        handleProjectMapError();
+    }
+}
+
+// Handle map load error by showing coordinates in text format
+function handleProjectMapError() {
+    console.log("Handling project map error - showing coordinates as text");
+    
+    // Show fallback UI
+    const mapFallback = document.getElementById("map-fallback");
+    if (mapFallback) {
+        // Calculate center of coordinates
+        let centerLat = 0, centerLng = 0;
+        if (projectCoordinates && projectCoordinates.length > 0) {
+            for (let i = 0; i < projectCoordinates.length; i++) {
+                centerLat += projectCoordinates[i][0];
+                centerLng += projectCoordinates[i][1];
+            }
+            centerLat /= projectCoordinates.length;
+            centerLng /= projectCoordinates.length;
+        }
+        
+        // Create a text representation of the project area
+        let coordText = "";
+        if (projectCoordinates && projectCoordinates.length > 0) {
+            coordText = "<div class='mt-3'><strong>Project Coordinates:</strong><br>";
+            for (let i = 0; i < Math.min(5, projectCoordinates.length); i++) {
+                coordText += `Point ${i+1}: ${projectCoordinates[i][0].toFixed(6)}, ${projectCoordinates[i][1].toFixed(6)}<br>`;
+            }
+            if (projectCoordinates.length > 5) {
+                coordText += `<em>...and ${projectCoordinates.length - 5} more points</em>`;
+            }
+            coordText += "</div>";
+        }
+        
+        // Display project info
+        mapFallback.innerHTML = `
+            <i class="fas fa-map-marker-alt fa-4x mb-3 text-primary"></i>
+            <h5 class="text-primary">Project Location</h5>
+            <p class="text-muted">Map display unavailable. Project is located at approximately:</p>
+            <div class="badge bg-primary mb-3">${centerLat.toFixed(6)}, ${centerLng.toFixed(6)}</div>
+            <p class="text-muted">Project type: <strong>{{ project.project_type }}</strong></p>
+            ${coordText}
+            <small class="text-warning">Note: Map visualization is not available due to API limitations.</small>
+        `;
     }
 }
 </script>

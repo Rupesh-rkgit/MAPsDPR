@@ -48,8 +48,10 @@ with app.app_context():
 # Routes
 @app.route('/')
 def index():
-    # For a real application, you would get this from environment variables
-    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    # Get the API key from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    if not google_maps_api_key:
+        logger.warning("No Google Maps API key found in environment variables")
     return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/projects')
@@ -66,8 +68,10 @@ def view_project(project_id):
     # Parse the coordinates from the JSON string
     coordinates = json.loads(project.coordinates_json)
     
-    # For a real application, you would get this from environment variables
-    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    # Get the API key from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY')
+    if not google_maps_api_key:
+        logger.warning("No Google Maps API key found in environment variables")
     
     return render_template('view_project.html', 
                           project=project, 

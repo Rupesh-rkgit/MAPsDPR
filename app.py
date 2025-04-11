@@ -52,6 +52,105 @@ def index():
     google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
     return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
+@app.route('/projects')
+def list_projects():
+    # Retrieve all projects from the database
+    projects = models.Project.query.order_by(models.Project.created_at.desc()).all()
+    return render_template('projects.html', projects=projects)
+
+@app.route('/project/<int:project_id>')
+def view_project(project_id):
+    # Retrieve the project from the database
+    project = models.Project.query.get_or_404(project_id)
+    
+    # Parse the coordinates from the JSON string
+    coordinates = json.loads(project.coordinates_json)
+    
+    # For a real application, you would get this from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    
+    return render_template('view_project.html', 
+                          project=project, 
+                          coordinates=coordinates,
+                          google_maps_api_key=google_maps_api_key)
+
+@app.route('/project/<int:project_id>/analyze')
+def reanalyze_project(project_id):
+    # Retrieve the project from the database
+    project = models.Project.query.get_or_404(project_id)
+    
+    # Parse the coordinates from the JSON string
+    coordinates = json.loads(project.coordinates_json)
+    
+    # Store project details in session for later use
+    session['project_details'] = {
+        'id': project.id,
+        'name': project.name,
+        'type': project.project_type,
+        'coordinates': coordinates
+    }
+    
+    # Mock the analysis process in this simplified version
+    # In a real application, these would use actual imagery and AI models
+    imagery_data = preprocess_imagery(coordinates)
+    land_cover_results = classify_land_cover(imagery_data)
+    objects_detected = detect_objects(imagery_data)
+    
+    # Combine results for client
+    analysis_results = {
+        'land_cover': land_cover_results,
+        'objects': objects_detected,
+        'terrain': {
+            'type': 'Mostly flat with slight undulation',
+            'confidence': 0.85
+        },
+        'vegetation': {
+            'density': 'Moderate',
+            'types': ['Trees', 'Shrubs'],
+            'confidence': 0.78
+        },
+        'water_bodies': ['Small stream detected', 'Potential seasonal drainage'],
+        'access_roads': ['Primary access from north', 'Secondary dirt track from east'],
+        'constraints': ['Stream crossing required', 'Dense vegetation in southern section']
+    }
+    
+    # Store analysis results in session
+    session['analysis_results'] = analysis_results
+    
+    # Redirect to the report generation page
+    return redirect(url_for('generate_report_route'))
+
+@app.route('/project/<int:project_id>/reports')
+def project_reports(project_id):
+    # Retrieve the project from the database
+    project = models.Project.query.get_or_404(project_id)
+    
+    # Retrieve all reports for this project
+    reports = models.Report.query.filter_by(project_id=project_id).order_by(models.Report.generated_at.desc()).all()
+    
+    return render_template('project_reports.html', project=project, reports=reports)
+
+@app.route('/report/<int:report_id>/view')
+def view_report(report_id):
+    # Retrieve the report from the database
+    report = models.Report.query.get_or_404(report_id)
+    
+    # Retrieve the project for this report
+    project = models.Project.query.get_or_404(report.project_id)
+    
+    # Load analysis results from the JSON string
+    analysis_results = json.loads(report.analysis_results_json)
+    
+    # Parse project coordinates
+    project_details = {
+        'id': project.id,
+        'name': project.name,
+        'type': project.project_type,
+        'coordinates': json.loads(project.coordinates_json)
+    }
+    
+    return render_template('report.html', project=project_details, results=analysis_results)
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     try:
@@ -68,8 +167,18 @@ def analyze():
         if not area_coordinates:
             return jsonify({'error': 'No area coordinates provided'}), 400
         
+        # Create a new project in the database
+        new_project = models.Project(
+            name=project_name,
+            project_type=project_type,
+            coordinates_json=json.dumps(area_coordinates)
+        )
+        db.session.add(new_project)
+        db.session.commit()
+        
         # Store project details in session for later use
         session['project_details'] = {
+            'id': new_project.id,
             'name': project_name,
             'type': project_type,
             'coordinates': area_coordinates
@@ -144,14 +253,40 @@ def download_report():
         
         if not analysis_results or not project_details:
             return jsonify({'error': 'No analysis data found'}), 404
+            
+        project_id = project_details.get('id')
+        if not project_id:
+            return jsonify({'error': 'Invalid project data'}), 400
         
         # Generate PDF report (this is a placeholder in this simplified version)
         pdf_data = generate_report(project_details, analysis_results)
         
+        # Create reports directory if it doesn't exist
+        reports_dir = os.path.join('static', 'reports')
+        os.makedirs(reports_dir, exist_ok=True)
+        
+        # Create a filename for the report
+        timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+        filename = f"project_{project_id}_report_{timestamp}.json"
+        file_path = os.path.join(reports_dir, filename)
+        
+        # Save the report to a file (in a real app, this would be a PDF)
+        with open(file_path, 'w') as f:
+            f.write(pdf_data)
+            
+        # Save the report in the database
+        new_report = models.Report(
+            project_id=project_id,
+            file_path=file_path,
+            analysis_results_json=json.dumps(analysis_results)
+        )
+        db.session.add(new_report)
+        db.session.commit()
+        
         return jsonify({
             'success': True,
             'message': 'Report generated successfully',
-            'download_url': '/static/reports/sample_report.pdf'  # This would be a real PDF in production
+            'download_url': f"/static/reports/{filename}"
         })
     
     except Exception as e:

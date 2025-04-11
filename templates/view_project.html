@@ -1,0 +1,130 @@
+{% extends 'layout.html' %}
+
+{% block head %}
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key | default('') }}&libraries=drawing,places&callback=initProjectMap" async defer></script>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12 mb-3">
+        <nav aria-label="breadcrumb">
+            <ol class="breadcrumb">
+                <li class="breadcrumb-item"><a href="/">Home</a></li>
+                <li class="breadcrumb-item"><a href="/projects">My Projects</a></li>
+                <li class="breadcrumb-item active">{{ project.name }}</li>
+            </ol>
+        </nav>
+    </div>
+    
+    <div class="col-md-4">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-project-diagram me-2"></i>Project Details
+            </div>
+            <div class="card-body">
+                <h4 class="card-title">{{ project.name }}</h4>
+                <div class="mb-3">
+                    <strong>Type:</strong> {{ project.project_type }}
+                </div>
+                <div class="mb-3">
+                    <strong>Created:</strong> {{ project.created_at.strftime('%Y-%m-%d %H:%M') }}
+                </div>
+                <div class="mb-3">
+                    <strong>Reports:</strong> {{ project.reports|length }}
+                </div>
+                
+                <hr>
+                
+                <div class="d-grid gap-2">
+                    <a href="/project/{{ project.id }}/reports" class="btn btn-success">
+                        <i class="fas fa-file-alt me-1"></i> View Reports
+                    </a>
+                    <a href="/project/{{ project.id }}/analyze" class="btn btn-primary">
+                        <i class="fas fa-microscope me-1"></i> Re-Analyze Project
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div class="card mb-4">
+            <div class="card-header bg-primary text-white">
+                <i class="fas fa-map me-2"></i>Project Area Map
+            </div>
+            <div class="card-body p-0">
+                <div id="project-map" style="height: 60vh;"></div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// Initialize project map with saved coordinates
+let projectMap;
+let projectCoordinates = {{ coordinates|tojson }};
+
+function initProjectMap() {
+    // Create map centered on the first coordinate (or a default if none)
+    let mapCenter;
+    if (projectCoordinates && projectCoordinates.length > 0) {
+        mapCenter = { 
+            lat: projectCoordinates[0][0], 
+            lng: projectCoordinates[0][1] 
+        };
+    } else {
+        mapCenter = { lat: 20.5937, lng: 78.9629 }; // Default center
+    }
+    
+    // Initialize the map
+    projectMap = new google.maps.Map(document.getElementById("project-map"), {
+        center: mapCenter,
+        zoom: 12,
+        mapTypeId: "hybrid",
+        mapTypeControl: true,
+        streetViewControl: true,
+        fullscreenControl: true
+    });
+    
+    // Draw the project shape based on coordinates
+    if (projectCoordinates && projectCoordinates.length > 0) {
+        const isLinear = "{{ project.project_type }}" === "Rural Road" || 
+                        "{{ project.project_type }}" === "Urban Road" || 
+                        "{{ project.project_type }}" === "Pipeline" || 
+                        "{{ project.project_type }}" === "Transmission Line";
+        
+        if (isLinear) {
+            // Create polyline for linear projects
+            const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+            const polyline = new google.maps.Polyline({
+                path: path,
+                strokeColor: "#0000FF",
+                strokeWeight: 3,
+                editable: false,
+                map: projectMap
+            });
+        } else {
+            // Create polygon for area-based projects
+            const path = projectCoordinates.map(coord => ({ lat: coord[0], lng: coord[1] }));
+            const polygon = new google.maps.Polygon({
+                paths: path,
+                strokeColor: "#00FF00",
+                strokeWeight: 2,
+                fillColor: "#00FF00",
+                fillOpacity: 0.3,
+                editable: false,
+                map: projectMap
+            });
+            
+            // Fit bounds to the polygon
+            const bounds = new google.maps.LatLngBounds();
+            path.forEach(point => bounds.extend(point));
+            projectMap.fitBounds(bounds);
+        }
+    }
+}
+</script>
+{% endblock %}

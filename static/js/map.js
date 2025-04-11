@@ -6,23 +6,36 @@ let allShapes = [];
 
 // Initialize the map
 function initMap() {
-    // Default center (can be adjusted)
-    const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // Center of India
-    
-    // Create the map
-    map = new google.maps.Map(document.getElementById("map-container"), {
-        center: defaultCenter,
-        zoom: 6,
-        mapTypeId: "hybrid", // Show satellite imagery by default
-        mapTypeControl: true,
-        mapTypeControlOptions: {
-            style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
-            position: google.maps.ControlPosition.TOP_RIGHT,
-            mapTypeIds: ["roadmap", "terrain", "satellite", "hybrid"]
-        },
-        streetViewControl: true,
-        fullscreenControl: true
-    });
+    try {
+        // Hide the fallback content if map loads successfully
+        const mapFallback = document.getElementById("map-fallback");
+        if (mapFallback) {
+            mapFallback.style.display = "none";
+        }
+        
+        // Default center (can be adjusted)
+        const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // Center of India
+        
+        // Create the map
+        map = new google.maps.Map(document.getElementById("map-container"), {
+            center: defaultCenter,
+            zoom: 6,
+            mapTypeId: "hybrid", // Show satellite imagery by default
+            mapTypeControl: true,
+            mapTypeControlOptions: {
+                style: google.maps.MapTypeControlStyle.HORIZONTAL_BAR,
+                position: google.maps.ControlPosition.TOP_RIGHT,
+                mapTypeIds: ["roadmap", "terrain", "satellite", "hybrid"]
+            },
+            streetViewControl: true,
+            fullscreenControl: true
+        });
+        
+        console.log("Google Maps initialized successfully");
+    } catch (error) {
+        console.error("Error initializing Google Maps:", error);
+        handleMapLoadError();
+    }
     
     // Create drawing manager
     drawingManager = new google.maps.drawing.DrawingManager({

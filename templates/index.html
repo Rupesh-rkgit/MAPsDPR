@@ -1,8 +1,7 @@
 {% extends 'layout.html' %}
 
 {% block head %}
-<!-- Google Maps API -->
-<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=drawing,places&callback=initMap" async defer></script>
+<!-- Nothing extra in the head -->
 {% endblock %}
 
 {% block content %}
@@ -233,6 +232,9 @@
 {% block scripts %}
 <!-- Chart.js for visualization -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@3.7.0/dist/chart.min.js"></script>
+
+<!-- Google Maps API -->
+<script src="https://maps.googleapis.com/maps/api/js?key={{ google_maps_api_key }}&libraries=drawing,places&callback=initMap"></script>
 
 <!-- Custom JavaScript -->
 <script src="{{ url_for('static', filename='js/map.js') }}"></script>

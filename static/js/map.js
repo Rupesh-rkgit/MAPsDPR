@@ -3,6 +3,17 @@ let map;
 let drawingManager;
 let selectedShape = null;
 let allShapes = [];
+let mapInitialized = false;
+
+// Set a timeout to check if map was initialized properly
+window.addEventListener('load', function() {
+    setTimeout(function() {
+        if (!mapInitialized) {
+            console.log("Map initialization timeout - falling back to manual mode");
+            handleMapLoadError();
+        }
+    }, 5000); // 5 second timeout
+});
 
 // Initialize the map
 function initMap() {
@@ -32,6 +43,7 @@ function initMap() {
         });
         
         console.log("Google Maps initialized successfully");
+        mapInitialized = true;
     } catch (error) {
         console.error("Error initializing Google Maps:", error);
         handleMapLoadError();
@@ -737,4 +749,61 @@ function calculateApproximateArea(coordinates) {
 // Generate report
 function generateReport() {
     window.location.href = '/generate-report';
+}
+
+// Handle map load error
+function handleMapLoadError() {
+    console.log("Handling map load error - activating fallback");
+    
+    // Show fallback UI and enable manual draw mode
+    const mapFallback = document.getElementById("map-fallback");
+    if (mapFallback) {
+        mapFallback.style.display = "flex";
+    }
+    
+    // Set up manual draw button
+    const manualDrawBtn = document.getElementById("manual-draw-btn");
+    if (manualDrawBtn) {
+        manualDrawBtn.addEventListener("click", function() {
+            // For simplicity, we'll just enable the analyze button
+            // This allows the user to proceed even without a proper map
+            document.getElementById("analyze-btn").disabled = false;
+            
+            // Show message that manual mode is active
+            const mapFallback = document.getElementById("map-fallback");
+            mapFallback.innerHTML = `
+                <i class="fas fa-pencil-alt fa-4x mb-3 text-success"></i>
+                <h5 class="text-success">Manual Draw Mode Active</h5>
+                <p class="text-muted">You can now proceed with analysis using sample coordinates.</p>
+                <small class="text-warning">Note: This is a fallback mode. The actual Google Maps integration is not working.</small>
+            `;
+            
+            // Create a sample polygon for testing (coordinates in India)
+            const sampleCoordinates = [
+                [20.5937, 78.9629],
+                [20.7, 78.9],
+                [20.8, 79.1],
+                [20.6, 79.2]
+            ];
+            
+            // Store as selected shape
+            selectedShape = {
+                type: "polygon",
+                getPath: function() {
+                    return {
+                        getLength: function() { return sampleCoordinates.length; },
+                        getAt: function(i) { 
+                            return { 
+                                lat: function() { return sampleCoordinates[i][0]; },
+                                lng: function() { return sampleCoordinates[i][1]; }
+                            }; 
+                        }
+                    };
+                }
+            };
+            
+            // Add to allShapes
+            allShapes.push(selectedShape);
+        });
+    }
 }

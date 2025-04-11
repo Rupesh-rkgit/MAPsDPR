@@ -5,6 +5,7 @@ from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy.orm import DeclarativeBase
 from werkzeug.middleware.proxy_fix import ProxyFix
 import json
+from datetime import datetime
 
 # Set up logging
 logging.basicConfig(level=logging.DEBUG)
@@ -27,6 +28,11 @@ app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
 }
 db.init_app(app)
 
+# Add datetime.now function to templates
+@app.context_processor
+def utility_processor():
+    return {'now': datetime.now}
+
 # Import utility modules
 from utils.image_processor import preprocess_imagery
 from utils.land_cover import classify_land_cover
@@ -42,7 +48,9 @@ with app.app_context():
 # Routes
 @app.route('/')
 def index():
-    return render_template('index.html')
+    # For a real application, you would get this from environment variables
+    google_maps_api_key = os.environ.get('GOOGLE_MAPS_API_KEY', '')
+    return render_template('index.html', google_maps_api_key=google_maps_api_key)
 
 @app.route('/analyze', methods=['POST'])
 def analyze():

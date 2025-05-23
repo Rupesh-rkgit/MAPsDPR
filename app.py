@@ -267,18 +267,18 @@ def download_report():
         
         # Create a filename for the report
         timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
-        filename = f"project_{project_id}_report_{timestamp}.json"
+        filename = f"project_{project_id}_report_{timestamp}.pdf" # Changed to .pdf
         file_path = os.path.join(reports_dir, filename)
         
-        # Save the report to a file (in a real app, this would be a PDF)
-        with open(file_path, 'w') as f:
+        # Save the report to a file (now a PDF)
+        with open(file_path, 'wb') as f: # Changed to 'wb' for binary writing
             f.write(pdf_data)
             
         # Save the report in the database
         new_report = models.Report(
             project_id=project_id,
-            file_path=file_path,
-            analysis_results_json=json.dumps(analysis_results)
+            file_path=file_path, # This now reflects the .pdf path
+            analysis_results_json=json.dumps(analysis_results) # Keep storing full analysis data
         )
         db.session.add(new_report)
         db.session.commit()

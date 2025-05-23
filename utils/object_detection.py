@@ -92,7 +92,13 @@ def count_objects_by_type(detection_results):
         dict: Count of objects by category
     """
     counts = {}
+    # Keys that are part of the structure but not object categories to be counted
+    non_counting_keys = ['analysis_date', 'detection_model', 'map_data', 'image_reference'] 
     for category, objects in detection_results.items():
+        if category.startswith('_') or '__' in category: # Standard way to ignore private/meta keys
+            continue
+        if category in non_counting_keys: # Skip other non-counting keys
+            continue
         if isinstance(objects, list):
             counts[category] = len(objects)
     

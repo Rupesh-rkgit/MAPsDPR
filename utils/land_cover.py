@@ -77,8 +77,22 @@ def get_dominant_land_cover(land_cover_data):
         tuple: (dominant_type, percentage)
     """
     classifications = land_cover_data.get('classifications', {})
-    if not classifications:
+    if not isinstance(classifications, dict) or not classifications: # Added type check
+        logger.info("No classifications found or classifications is not a dict.")
         return (None, 0)
         
-    max_type = max(classifications.items(), key=lambda x: x[1]['percentage'])
-    return (max_type[0], max_type[1]['percentage'])
+    # Filter for items that are dicts and have a numeric percentage first
+    candidates = {
+        k: v.get('percentage') for k, v in classifications.items() 
+        if isinstance(v, dict) and isinstance(v.get('percentage'), (int, float))
+    }
+
+    if not candidates:
+        logger.info("No valid classification candidates with numeric percentages found.")
+        return (None, 0)
+
+    dominant_type_key = max(candidates, key=candidates.get)
+    dominant_percentage = candidates[dominant_type_key]
+    
+    logger.info(f"Dominant land cover: {dominant_type_key} ({dominant_percentage}%)")
+    return (dominant_type_key, dominant_percentage)
